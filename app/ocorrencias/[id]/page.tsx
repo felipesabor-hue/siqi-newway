@@ -69,6 +69,25 @@ type Profile = {
   department: string | null;
   is_active: boolean;
 };
+type HistoricoItem = {
+  data: string;
+  titulo: string;
+  descricao: string;
+  tipo:
+    | "ocorrencia"
+    | "analise"
+    | "acao"
+    | "execucao"
+    | "evidencia"
+    | "eficacia"
+    | "reabertura"
+    | "fechamento"
+    | "auditoria";
+  etapa: string;
+  statusVisual: "neutro" | "sucesso" | "alerta" | "erro" | "info";
+  detalhes?: string[];
+  origem?: "auditoria";
+};
 
 export default function DetalheOcorrenciaPage() {
   const params = useParams();
