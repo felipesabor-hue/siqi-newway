@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+type RelationName = { name: string } | { name: string }[] | null;
+
 type Occurrence = {
   id: string;
   occurrence_number: string;
@@ -13,10 +15,10 @@ type Occurrence = {
   suspected_quantity: number | null;
   opened_at: string;
   closed_at: string | null;
-  companies: { name: string } | null;
-  customers: { name: string } | null;
-  processes: { name: string } | null;
-  defects: { name: string } | null;
+  companies: RelationName;
+  customers: RelationName;
+  processes: RelationName;
+  defects: RelationName;
 };
 
 type CorrectiveAction = {
@@ -40,6 +42,12 @@ type OccurrenceView = Occurrence & {
   temAcaoAtrasada: boolean;
   aguardandoEficacia: boolean;
 };
+
+function getRelationName(relation: RelationName) {
+  if (!relation) return null;
+  if (Array.isArray(relation)) return relation[0]?.name || null;
+  return relation.name || null;
+}
 
 export default function OcorrenciasPage() {
   const router = useRouter();
@@ -146,7 +154,7 @@ export default function OcorrenciasPage() {
       return;
     }
 
-    setOcorrencias((ocorrenciasData || []) as Occurrence[]);
+    setOcorrencias((ocorrenciasData || []) as unknown as Occurrence[]);
     setAcoes((acoesData || []) as CorrectiveAction[]);
     setLoading(false);
   }
@@ -182,6 +190,7 @@ export default function OcorrenciasPage() {
       const temAcaoAtrasada = acoesDaOcorrencia.some((acao) => {
         if (!acao.due_date) return false;
         if (acao.status === "concluida") return false;
+
         const prazo = new Date(acao.due_date);
         prazo.setHours(0, 0, 0, 0);
 
@@ -207,7 +216,9 @@ export default function OcorrenciasPage() {
   const empresas = useMemo(() => {
     return Array.from(
       new Set(
-        ocorrencias.map((item) => item.companies?.name).filter(Boolean)
+        ocorrencias
+          .map((item) => getRelationName(item.companies))
+          .filter(Boolean)
       )
     ) as string[];
   }, [ocorrencias]);
@@ -231,8 +242,13 @@ export default function OcorrenciasPage() {
   const ocorrenciasFiltradas = useMemo(() => {
     return ocorrenciasComIndicadores
       .filter((item) => {
+        const empresaNome = getRelationName(item.companies);
+        const clienteNome = getRelationName(item.customers);
+        const processoNome = getRelationName(item.processes);
+        const defeitoNome = getRelationName(item.defects);
+
         const empresaOk =
-          empresaFiltro === "todas" || item.companies?.name === empresaFiltro;
+          empresaFiltro === "todas" || empresaNome === empresaFiltro;
 
         const statusOk =
           statusFiltro === "todos" || item.status === statusFiltro;
@@ -258,10 +274,10 @@ export default function OcorrenciasPage() {
         const buscaOk =
           !textoBusca ||
           item.occurrence_number?.toLowerCase().includes(textoBusca) ||
-          item.companies?.name?.toLowerCase().includes(textoBusca) ||
-          item.customers?.name?.toLowerCase().includes(textoBusca) ||
-          item.processes?.name?.toLowerCase().includes(textoBusca) ||
-          item.defects?.name?.toLowerCase().includes(textoBusca) ||
+          empresaNome?.toLowerCase().includes(textoBusca) ||
+          clienteNome?.toLowerCase().includes(textoBusca) ||
+          processoNome?.toLowerCase().includes(textoBusca) ||
+          defeitoNome?.toLowerCase().includes(textoBusca) ||
           item.lot_number?.toLowerCase().includes(textoBusca) ||
           item.origin?.toLowerCase().includes(textoBusca);
 
@@ -288,15 +304,19 @@ export default function OcorrenciasPage() {
   ]);
 
   const totalFiltrado = ocorrenciasFiltradas.length;
+
   const abertasFiltradas = ocorrenciasFiltradas.filter(
     (item) => item.status !== "concluida"
   ).length;
+
   const reabertasFiltradas = ocorrenciasFiltradas.filter(
     (item) => item.status === "reaberta"
   ).length;
+
   const atrasadasFiltradas = ocorrenciasFiltradas.filter(
     (item) => item.temAcaoAtrasada
   ).length;
+
   const concluidasFiltradas = ocorrenciasFiltradas.filter(
     (item) => item.status === "concluida"
   ).length;
@@ -425,6 +445,7 @@ export default function OcorrenciasPage() {
             <label className="mb-1 block text-sm font-semibold text-gray-700">
               Empresa
             </label>
+
             <select
               className="w-full rounded border bg-white px-3 py-2 text-sm text-black"
               value={empresaFiltro}
@@ -443,6 +464,7 @@ export default function OcorrenciasPage() {
             <label className="mb-1 block text-sm font-semibold text-gray-700">
               Status
             </label>
+
             <select
               className="w-full rounded border bg-white px-3 py-2 text-sm text-black"
               value={statusFiltro}
@@ -456,10 +478,12 @@ export default function OcorrenciasPage() {
               ))}
             </select>
           </div>
+
           <div className="md:col-span-2">
             <label className="mb-1 block text-sm font-semibold text-gray-700">
               Buscar
             </label>
+
             <input
               className="w-full rounded border bg-white px-3 py-2 text-sm text-black"
               placeholder="Buscar por RNC, cliente, defeito, lote..."
@@ -529,10 +553,22 @@ export default function OcorrenciasPage() {
                       {item.occurrence_number}
                     </td>
 
-                    <td className="p-3">{item.companies?.name || "-"}</td>
-                    <td className="p-3">{item.customers?.name || "-"}</td>
-                    <td className="p-3">{item.processes?.name || "-"}</td>
-                    <td className="p-3">{item.defects?.name || "-"}</td>
+                    <td className="p-3">
+                      {getRelationName(item.companies) || "-"}
+                    </td>
+
+                    <td className="p-3">
+                      {getRelationName(item.customers) || "-"}
+                    </td>
+
+                    <td className="p-3">
+                      {getRelationName(item.processes) || "-"}
+                    </td>
+
+                    <td className="p-3">
+                      {getRelationName(item.defects) || "-"}
+                    </td>
+
                     <td className="p-3">{item.lot_number || "-"}</td>
                     <td className="p-3">{item.suspected_quantity || "-"}</td>
                     <td className="p-3">{item.origin || "-"}</td>
@@ -581,6 +617,7 @@ function ResumoCard({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
+
 function AtalhoFiltro({
   ativo,
   onClick,
