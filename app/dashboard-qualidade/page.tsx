@@ -1053,8 +1053,8 @@ export default function DashboardQualidadePage() {
                       </div>
 
                       <div className="mt-1 text-xs text-gray-600">
-                        {item.processes?.name || "-"} /{" "}
-                        {item.defects?.name || "-"}
+                        {getRelationName(item.processes) || "-"} /{" "}
+{getRelationName(item.defects) || "-"}
                       </div>
 
                       <div className="mt-1 text-xs text-gray-500">
