@@ -4,15 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+type RelationName = { name: string } | { name: string }[] | null;
+
 type Occurrence = {
   id: string;
   occurrence_number: string;
   status: string;
   opened_at: string;
   closed_at: string | null;
-  processes: { name: string } | null;
-  defects: { name: string } | null;
+  processes: RelationName;
+  defects: RelationName;
 };
+function getRelationName(relation: RelationName) {
+  if (!relation) return null;
+  if (Array.isArray(relation)) return relation[0]?.name || null;
+  return relation.name || null;
+}
 
 type Action = {
   id: string;
@@ -481,7 +488,7 @@ export default function DashboardQualidadePage() {
     const mapa = new Map<string, number>();
 
     occurrencesFiltradas.forEach((item) => {
-      const processo = item.processes?.name || "Sem processo";
+      const processo = getRelationName(item.processes) || "Sem processo";
       mapa.set(processo, (mapa.get(processo) || 0) + 1);
     });
 
@@ -495,7 +502,7 @@ export default function DashboardQualidadePage() {
     const mapa = new Map<string, number>();
 
     occurrencesFiltradas.forEach((item) => {
-      const defeito = item.defects?.name || "Sem defeito";
+      const defeito = getRelationName(item.defects) || "Sem defeito";
       mapa.set(defeito, (mapa.get(defeito) || 0) + 1);
     });
 
