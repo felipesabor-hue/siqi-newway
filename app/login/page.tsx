@@ -25,10 +25,10 @@ export default function LoginPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({
+  email,
+  password,
+});
 
     if (error) {
       setMessage("Não foi possível entrar. Verifique seu e-mail e senha.");
